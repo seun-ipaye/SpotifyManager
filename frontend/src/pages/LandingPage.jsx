@@ -4,45 +4,16 @@ export default function LandingPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
-  //     async function handleCreateRoom() {
-  //     console.log("tryna create now");
-  //     if (!eventName.trim()) {
-  //       setError("Please enter an event name");
-  //       return;
-  //     }
+  async function handleLogin() {
+    try {
+      setIsLoading(true);
 
-  //     try {
-  //       setLoading(true);
-  //       setError("");
-
-  //       const response = await fetch(
-  //         `${import.meta.env.VITE_API_BASE_URL}/rooms`,
-  //         {
-  //           method: "POST",
-  //           headers: {
-  //             "Content-Type": "application/json",
-  //           },
-  //           body: JSON.stringify({
-  //             title: eventName,
-  //           }),
-  //         },
-  //       );
-
-  //       if (!response.ok) {
-  //         throw new Error("Failed to create room");
-  //       }
-
-  //       const room = await response.json();
-
-  //       console.log("Created room:", room);
-
-  //       navigate("/dashboard", { state: { room, roomID: room.id } });
-  //     } catch (err) {
-  //       setError(err.message || "Something went wrong");
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   }
+      window.location.href = `${import.meta.env.VITE_API_URL}/login`;
+    } catch (err) {
+      console.error(err);
+      setIsLoading(false);
+    }
+  }
 
   return (
     <div
@@ -66,9 +37,9 @@ export default function LandingPage() {
         Easily modify your Spotify playlists
       </p>
       <button
-        onClick={console.log("login")}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        onClick={handleLogin}
+        // onMouseEnter={() => setIsHovered(true)}
+        // onMouseLeave={() => setIsHovered(false)}
         style={{
           backgroundColor: isHovered ? "green" : "white",
           color: isHovered ? "white" : "black",
