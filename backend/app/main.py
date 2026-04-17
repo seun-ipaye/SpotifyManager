@@ -125,8 +125,10 @@ def get_user():
         "https://api.spotify.com/v1/me",
         headers={"Authorization": f"Bearer {access_token}"}
     )
-    print("userp", response.json())
-    return response.json()
+    
+    data = response.json()
+    print("userp", data)
+    return data
 #uvicorn app.main:app --reload --port 5001
 #source venv/bin/activate 
 #uvicorn app.main:app --reload 

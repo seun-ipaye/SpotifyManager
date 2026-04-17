@@ -3,11 +3,19 @@ import { useNavigate } from "react-router-dom";
 
 function PlaylistsPage() {
   const [playlists, setPlaylists] = useState([]);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     fetchPlaylists();
     fetchUserProfile();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      console.log("User state updated:", user.display_name, user.id);
+      // Do something with the updated user state
+    }
+  }, [user]);
 
   const fetchPlaylists = async () => {
     try {
@@ -36,11 +44,23 @@ function PlaylistsPage() {
         credentials: "include",
       });
 
-      console.log("User:", response);
+      const data = await response.json();
+      console.log("User:", data);
+      setUser(data);
     } catch (error) {
-      console.error("Error fetching playlists:", error);
+      console.error("Error fetching user:", error);
     }
   };
+
+  function didUserMakeThis(playlist) {
+    const playlistOwner = playlist.owner.id;
+    const userid = user.id;
+    if (playlistOwner == userid) {
+      return true;
+    } else {
+      return false;
+    }
+  }
 
   return (
     <div
@@ -65,7 +85,9 @@ function PlaylistsPage() {
               //     : "1px solid #e2e8f0",
               borderRadius: "0.5rem",
               cursor: "pointer",
-              backgroundColor: "rgb(15, 15, 15)",
+              backgroundColor: didUserMakeThis(playlist)
+                ? "rgb(15, 15, 15)"
+                : "red",
             }}
           >
             <img
