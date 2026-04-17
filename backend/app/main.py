@@ -143,4 +143,4 @@ def get_tracks(playlist_id: str):
     return response.json()
 #uvicorn app.main:app --reload --port 5001
 #python3 -m venv venv source venv/bin/activate 
-#uvicorn app.main:app --reload 
+#uvicorn app.main:app --reload  
