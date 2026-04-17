@@ -124,7 +124,9 @@ function ComparisonPage() {
                         margin: 0,
                       }}
                     >
-                      {/* {track.item.artists.map((artist) => artist.name).join(", ")} */}
+                      {track.item.artists
+                        .map((artist) => artist.name)
+                        .join(", ")}
                     </p>
                   </div>
                 ))
