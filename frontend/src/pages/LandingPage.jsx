@@ -38,8 +38,8 @@ export default function LandingPage() {
       </p>
       <button
         onClick={handleLogin}
-        // onMouseEnter={() => setIsHovered(true)}
-        // onMouseLeave={() => setIsHovered(false)}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         style={{
           backgroundColor: isHovered ? "green" : "white",
           color: isHovered ? "white" : "black",

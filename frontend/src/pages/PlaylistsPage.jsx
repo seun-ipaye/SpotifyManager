@@ -2,7 +2,105 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 function PlaylistsPage() {
-  return <div>playlists page</div>;
+  const [playlists, setPlaylists] = useState([]);
+
+  useEffect(() => {
+    fetchPlaylists();
+    fetchUserProfile();
+  }, []);
+
+  const fetchPlaylists = async () => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/playlists`,
+        {
+          credentials: "include",
+        },
+      );
+
+      const data = await response.json();
+      console.log("Playlists response from backend:", data.items);
+
+      // make sure we always set an array
+      const items = Array.isArray(data.items) ? data.items : [];
+      setPlaylists(items);
+    } catch (error) {
+      console.error("Error fetching playlists:", error);
+      setPlaylists([]); // keep it as an array so .map is safe
+    }
+  };
+
+  const fetchUserProfile = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/user`, {
+        credentials: "include",
+      });
+
+      console.log("User:", response);
+    } catch (error) {
+      console.error("Error fetching playlists:", error);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(4, 1fr)",
+        gap: "1rem",
+      }}
+    >
+      {Array.isArray(playlists) && playlists.length > 0 ? (
+        playlists.map((playlist) => (
+          <div
+            key={playlist.id}
+            // onClick={() => handlePlaylistSelect(playlist)}
+            onClick={""}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              padding: "1rem",
+              //   border: selectedPlaylists.includes(playlist)
+              //     ? "2px solid #1DB954"
+              //     : "1px solid #e2e8f0",
+              borderRadius: "0.5rem",
+              cursor: "pointer",
+              backgroundColor: "rgb(15, 15, 15)",
+            }}
+          >
+            <img
+              src={playlist.images?.[0]?.url || "/placeholder.png"}
+              alt={playlist.name}
+              style={{
+                width: "100%",
+                aspectRatio: "1 / 1",
+                objectFit: "cover",
+                marginBottom: "0.5rem",
+              }}
+            />
+            <h3
+              style={{
+                fontWeight: "bold",
+                marginBottom: "0.25rem",
+                color: "white",
+              }}
+            >
+              {playlist.name}
+            </h3>
+            <p style={{ fontSize: "0.875rem", color: "#64748b" }}>
+              {playlist.tracks?.total ?? 0} tracks
+            </p>
+          </div>
+        ))
+      ) : (
+        <p style={{ color: "#64748b" }}>
+          {Array.isArray(playlists)
+            ? "No playlists found."
+            : "Loading playlists..."}
+        </p>
+      )}
+    </div>
+  );
 }
 
 export default PlaylistsPage;

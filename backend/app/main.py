@@ -106,5 +106,27 @@ def callback(code: str, state: str):
     front_url = "http://localhost:5173/playlists"
     return RedirectResponse(url=front_url)
     
+@app.get("/playlists")
+def get_playlists():
+    access_token = stuff["access_token"]
+    
+    response = requests.get(
+        "https://api.spotify.com/v1/me/playlists",
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
+    
+    return response.json()
+
+@app.get("/user")
+def get_user():
+    access_token = stuff["access_token"]
+    
+    response = requests.get(
+        "https://api.spotify.com/v1/me",
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
+    print("userp", response.json())
+    return response.json()
 #uvicorn app.main:app --reload --port 5001
+#source venv/bin/activate 
 #uvicorn app.main:app --reload 
