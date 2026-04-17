@@ -23,7 +23,7 @@ function ComparisonPage() {
     }
   }
 
-  const fetchTracks = async (playlist) => {
+  const fetchTracks = async () => {
     const trackData = {};
     for (const playlist of selectedPlaylists) {
       try {
@@ -48,8 +48,8 @@ function ComparisonPage() {
   useEffect(() => {
     fetchTracks();
 
-    // console.log("selected playlists", selectedPlaylists);
-    // console.log("user in comparison", user);
+    console.log(" playlists", playlists);
+    // console.log("tracks", tracks);
   }, []);
 
   useEffect(() => {
@@ -93,40 +93,44 @@ function ComparisonPage() {
             />
             <h2 style={{ marginTop: "1rem" }}>{playlist.name}</h2>
             <div>
-              {tracks[playlist.id].map((track) => (
-                <div
-                  key={track.item.id}
-                  style={{
-                    textAlign: "center",
-                    width: "500px",
-                    border: "1px solid #333",
-                    borderRadius: "10px",
-                    padding: "1rem",
-                  }}
-                >
-                  <h3 style={{ marginTop: "1rem" }}>{track.item.name}</h3>
-                  <img
-                    src={
-                      track.item.album.images?.[0]?.url || "/placeholder.png"
-                    }
-                    alt={track.track.name}
+              {tracks[playlist.id]?.length > 0 ? (
+                tracks[playlist.id].map((track) => (
+                  <div
+                    key={track.item.id}
                     style={{
-                      width: "50px",
-                      height: "50px",
-                      borderRadius: "5px",
-                    }}
-                  />
-                  <p
-                    style={{
-                      fontSize: "0.875rem",
-                      color: "#b3b3b3",
-                      margin: 0,
+                      textAlign: "center",
+                      width: "500px",
+                      border: "1px solid #333",
+                      borderRadius: "10px",
+                      padding: "1rem",
                     }}
                   >
-                    {track.item.artists.map((artist) => artist.name).join(", ")}
-                  </p>
-                </div>
-              ))}
+                    <h3 style={{ marginTop: "1rem" }}>{track.item.name}</h3>
+                    <img
+                      src={
+                        track.item.album.images?.[0]?.url || "/placeholder.png"
+                      }
+                      alt={track.track.name}
+                      style={{
+                        width: "50px",
+                        height: "50px",
+                        borderRadius: "5px",
+                      }}
+                    />
+                    <p
+                      style={{
+                        fontSize: "0.875rem",
+                        color: "#b3b3b3",
+                        margin: 0,
+                      }}
+                    >
+                      {/* {track.item.artists.map((artist) => artist.name).join(", ")} */}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <div>hi</div>
+              )}
             </div>
           </div>
         ))}
