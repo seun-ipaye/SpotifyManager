@@ -13,6 +13,7 @@ load_dotenv()
 client_id = os.getenv("SPOTIFY_CLIENT_ID")
 client_secret = os.getenv("SPOTIFY_CLIENT_SECRET")
 redirect_uri = os.getenv("REDIRECT_URI")
+frontend_url = os.getenv("FRONTEND_URL")
 
 stuff = {
     
@@ -103,7 +104,7 @@ def callback(code: str, state: str):
         
     else:
         raise HTTPException(status_code=401, detail="state doesnt match")
-    front_url = "http://localhost:5173/playlists"
+    front_url = f"{frontend_url}/playlists"
     return RedirectResponse(url=front_url)
     
 @app.get("/playlists")
@@ -141,5 +142,5 @@ def get_tracks(playlist_id: str):
     
     return response.json()
 #uvicorn app.main:app --reload --port 5001
-#source venv/bin/activate 
-#uvicorn app.main:app --reload  1aYdbuQskziK8nfyGRg1EX
+#python3 -m venv venv source venv/bin/activate 
+#uvicorn app.main:app --reload 
