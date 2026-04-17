@@ -16,7 +16,7 @@ function PlaylistsPage() {
 
   useEffect(() => {
     if (user) {
-      console.log("User state updated:", user.display_name, user.id);
+      // console.log("User state updated:", user.display_name, user.id);
       // Do something with the updated user state
     }
   }, [user]);
@@ -31,7 +31,7 @@ function PlaylistsPage() {
       );
 
       const data = await response.json();
-      console.log("Playlists response from backend:", data.items);
+      // console.log("Playlists response from backend:", data.items);
 
       // make sure we always set an array
       const items = Array.isArray(data.items) ? data.items : [];
@@ -49,7 +49,7 @@ function PlaylistsPage() {
       });
 
       const data = await response.json();
-      console.log("User:", data);
+      // console.log("User:", data);
       setUser(data);
     } catch (error) {
       console.error("Error fetching user:", error);
@@ -78,7 +78,12 @@ function PlaylistsPage() {
   };
 
   const confirmComparison = () => {
-    navigate("/comparison", { state: { selectedPlaylists } });
+    navigate("/comparison", {
+      state: {
+        selectedPlaylists: selectedPlaylists,
+        userdata: user,
+      },
+    });
   };
 
   const cancelComparison = () => {

@@ -129,6 +129,17 @@ def get_user():
     data = response.json()
     print("userp", data)
     return data
+
+@app.get("/playlist/{playlist_id}/tracks")
+def get_tracks(playlist_id: str):
+    access_token = stuff["access_token"]
+    
+    response = requests.get(
+        f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks",
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
+    
+    return response.json()
 #uvicorn app.main:app --reload --port 5001
 #source venv/bin/activate 
-#uvicorn app.main:app --reload 
+#uvicorn app.main:app --reload  1aYdbuQskziK8nfyGRg1EX

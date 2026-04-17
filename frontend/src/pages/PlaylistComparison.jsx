@@ -1,13 +1,60 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import BackButton from "../components/BackButton";
+import didUserMakeThis from "./PlaylistsPage";
 
 function ComparisonPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const selectedPlaylists = location.state?.selectedPlaylists || [];
+  const user = location.state?.userdata || null; // if user is null prolly go back to front page
+
   const [playlists, setPlaylists] = useState(selectedPlaylists);
   const [selectedSong, setSelectedSong] = useState(null);
+  const [tracks, setTracks] = useState({});
+
+  function didUserMakeThis(playlist) {
+    const playlistOwner = playlist.owner.id;
+    const userid = user.id;
+    if (playlistOwner == userid) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  const fetchTracks = async (playlist) => {
+    const trackData = {};
+    for (const playlist of selectedPlaylists) {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}/playlist/${playlist.id}/tracks`,
+          {
+            credentials: "include",
+          },
+        );
+
+        const data = await response.json();
+        // console.log("tracks", data.items);
+        trackData[playlist.id] = data.items || [];
+      } catch (error) {
+        console.error("Error fetching playlists:", error);
+      }
+    }
+
+    setTracks(trackData);
+  };
+
+  useEffect(() => {
+    fetchTracks();
+
+    // console.log("selected playlists", selectedPlaylists);
+    // console.log("user in comparison", user);
+  }, []);
+
+  useEffect(() => {
+    console.log("tracks", tracks);
+  }, [tracks]);
 
   return (
     <div>
@@ -30,6 +77,7 @@ function ComparisonPage() {
               border: "1px solid #333",
               borderRadius: "10px",
               padding: "1rem",
+              borderColor: didUserMakeThis(playlist) ? "yellow" : "grey",
             }}
           >
             <img
@@ -44,6 +92,42 @@ function ComparisonPage() {
               }}
             />
             <h2 style={{ marginTop: "1rem" }}>{playlist.name}</h2>
+            <div>
+              {tracks[playlist.id].map((track) => (
+                <div
+                  key={track.item.id}
+                  style={{
+                    textAlign: "center",
+                    width: "500px",
+                    border: "1px solid #333",
+                    borderRadius: "10px",
+                    padding: "1rem",
+                  }}
+                >
+                  <h3 style={{ marginTop: "1rem" }}>{track.item.name}</h3>
+                  <img
+                    src={
+                      track.item.album.images?.[0]?.url || "/placeholder.png"
+                    }
+                    alt={track.track.name}
+                    style={{
+                      width: "50px",
+                      height: "50px",
+                      borderRadius: "5px",
+                    }}
+                  />
+                  <p
+                    style={{
+                      fontSize: "0.875rem",
+                      color: "#b3b3b3",
+                      margin: 0,
+                    }}
+                  >
+                    {track.item.artists.map((artist) => artist.name).join(", ")}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         ))}
       </div>
