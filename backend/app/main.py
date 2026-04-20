@@ -1,6 +1,6 @@
 import string
 import random
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Cookie 
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from urllib.parse import urlencode
@@ -44,7 +44,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[frontend_url],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -71,7 +71,6 @@ def login():
     state = generate_random_code(16)
     scope = 'playlist-read-private playlist-read-collaborative playlist-modify-public playlist-modify-private user-read-private user-read-email'
     
-    stuff["state"] = state
     query_params = {
         "response_type": "code",
         "client_id": client_id,
@@ -79,15 +78,20 @@ def login():
         "redirect_uri": redirect_uri,
         "state": state,
     }
+
     
     auth_url = "https://accounts.spotify.com/authorize?" + urlencode(query_params)
-    return RedirectResponse(url=auth_url)
+
+    response = RedirectResponse(url=auth_url)
+    response.set_cookie(key="oauth_state", value=state, httponly=True, max_age=300, samesite="none", secure=True)
+    
+    return response
 
 print("runnning on 8000 :]")
 
 @app.get("/callback")
-def callback(code: str, state: str):
-    if (state == stuff["state"]):
+def callback(code: str, state: str, oauth_state: str = Cookie(None)):
+    if (state == oauth_state):
         print("yes(exchanges code for access+refresh token)")
         token_response = requests.post(
             "https://accounts.spotify.com/api/token",
@@ -99,17 +103,25 @@ def callback(code: str, state: str):
             auth=(client_id, client_secret)
         )
         # print(token_response.json())
-        stuff["access_token"] = token_response.json()["access_token"]
-        stuff["refresh_token"] = token_response.json()["refresh_token"]
+        data = token_response.json()
+        front_url = f"{frontend_url}/playlists"
+        frontend_redirect = RedirectResponse(url=front_url)
+        
+        frontend_redirect.set_cookie(key="access_token", value=data["access_token"], httponly=True, max_age=3600, samesite="none", secure=True) 
+        frontend_redirect.set_cookie(key="refresh_token", value=data["refresh_token"], httponly=True, max_age=360000, samesite="none", secure=True)
+        frontend_redirect.delete_cookie("oauth_state")
         
     else:
         raise HTTPException(status_code=401, detail="state doesnt match")
-    front_url = f"{frontend_url}/playlists"
-    return RedirectResponse(url=front_url)
+    
+    return frontend_redirect
     
 @app.get("/playlists")
-def get_playlists():
-    access_token = stuff["access_token"]
+def get_playlists(access_token: str = Cookie(None)):
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Not logged in")
+        
+    #access_token = stuff["access_token"]
     
     response = requests.get(
         "https://api.spotify.com/v1/me/playlists",
@@ -119,9 +131,11 @@ def get_playlists():
     return response.json()
 
 @app.get("/user")
-def get_user():
-    access_token = stuff["access_token"]
-    
+def get_user(access_token: str = Cookie(None)):
+    #access_token = stuff["access_token"]
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Missing access token")
+        
     response = requests.get(
         "https://api.spotify.com/v1/me",
         headers={"Authorization": f"Bearer {access_token}"}
@@ -132,8 +146,8 @@ def get_user():
     return data
 
 @app.get("/playlist/{playlist_id}/tracks")
-def get_tracks(playlist_id: str):
-    access_token = stuff["access_token"]
+def get_tracks(playlist_id: str, access_token: str = Cookie(None)):
+    #access_token = stuff["access_token"]
     
     response = requests.get(
         f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks",
