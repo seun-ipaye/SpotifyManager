@@ -109,15 +109,15 @@ function PlaylistsPage() {
               style={{
                 display: "flex",
                 flexDirection: "column",
+                position: "relative",
                 padding: "1rem",
                 border: selectedPlaylists.includes(playlist)
                   ? "2px solid #1DB954"
                   : "1px solid #e2e8f0",
                 borderRadius: "0.5rem",
                 cursor: "pointer",
-                backgroundColor: didUserMakeThis(playlist)
-                  ? "rgb(15, 15, 15)"
-                  : "red",
+                backgroundColor: "rgb(15, 15, 15)"
+                  
               }}
             >
               {!didUserMakeThis(playlist) && (
