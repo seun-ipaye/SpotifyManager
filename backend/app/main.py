@@ -35,6 +35,8 @@ app.add_middleware(
 
 class TrackAdd(BaseModel):
     track_uri: str
+class TrackDelete(BaseModel):
+    track_uri: str
     
 @app.get("/")
 def root():
@@ -145,7 +147,26 @@ def add_track(playlist_id: str, track_data: TrackAdd, access_token: str = Cookie
     else:
          raise HTTPException(status_code=add_response.status_code, detail=data.get("error", {}).get("message", "Spotify API error"))
     
-
+@app.post("/playlists/{playlist_id}/delete_track")
+def delete_track(playlist_id: str, track_data: TrackDelete, access_token: str = Cookie(None)):
+    if not access_token: raise HTTPException(status_code=401)
+    del_response = requests.delete(
+            f"https://api.spotify.com/v1/playlists/{playlist_id}/items",
+            json={
+                "items": [
+                    {
+                        "uri": track_data.track_uri
+                    }
+                ],
+        
+            },
+            headers={"Authorization": f"Bearer {access_token}"}
+        )
+    data = del_response.json()
+    if del_response.status_code == 200:
+        return data
+    else:
+         raise HTTPException(status_code=del_response.status_code, detail=data.get("error", {}).get("message", "Spotify API error"))
 #uvicorn app.main:app --reload --port 5001
 #python3 -m venv venv source venv/bin/activate 
 #uvicorn app.main:app --reload  
