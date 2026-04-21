@@ -68,6 +68,15 @@ function ComparisonPage() {
   
   if (!songURI) return;
 
+  const targetTracks = tracks[targetPlaylistId] || [];
+
+  const isDuplicate = targetTracks.some(t => t.track.uri === songURI);
+
+  if (isDuplicate) {
+    alert("This song is already in this playlist!");
+    return;
+  }
+
   // 1. Frontend Ownership Check (Optional but good)
   // Find the target playlist in your state
   const targetPlaylist = playlists.find(p => p.id === targetPlaylistId);
