@@ -15,28 +15,10 @@ client_secret = os.getenv("SPOTIFY_CLIENT_SECRET")
 redirect_uri = os.getenv("REDIRECT_URI")
 frontend_url = os.getenv("FRONTEND_URL")
 
-stuff = {
-    
-}
 
 
 def generate_random_code(size, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choices(chars, k=size))
-
-# playlist_id = "3m7rfTFYrcH2oPbGbytBCr"
-
-def get_access_token():
-    token_response = requests.post(
-        "https://accounts.spotify.com/api/token",
-        data={"grant_type": "client_credentials"},
-        auth=(client_id, client_secret),
-    )
-
-    if token_response.status_code != 200:
-        raise HTTPException(status_code=token_response.status_code, detail=token_response.json())
-
-    return token_response.json()["access_token"]
-
 
 
 app = FastAPI()
@@ -53,18 +35,6 @@ app.add_middleware(
 @app.get("/")
 def root():
     return {"message": "Spotify Manager API running"}
-
-@app.get("/playlist/{playlist_id}")
-def get_playlist(playlist_id: str):
-    
-    access_token = get_access_token()
-    playlist_response = requests.get(f"https://api.spotify.com/v1/playlists/{playlist_id}", headers={"Authorization": f"Bearer {access_token}"})
-    
-    if playlist_response.status_code != 200:
-        raise HTTPException(status_code=playlist_response.status_code, detail=playlist_response.json())
-
-   
-    return playlist_response.json()
 
 @app.get("/login")
 def login():
@@ -87,7 +57,7 @@ def login():
     
     return response
 
-print("runnning on 8000 :]")
+print("runnning")
 
 @app.get("/callback")
 def callback(code: str, state: str, oauth_state: str = Cookie(None)):
@@ -120,9 +90,7 @@ def callback(code: str, state: str, oauth_state: str = Cookie(None)):
 def get_playlists(access_token: str = Cookie(None)):
     if not access_token:
         raise HTTPException(status_code=401, detail="Not logged in")
-        
-    #access_token = stuff["access_token"]
-    
+            
     response = requests.get(
         "https://api.spotify.com/v1/me/playlists",
         headers={"Authorization": f"Bearer {access_token}"}
@@ -132,7 +100,6 @@ def get_playlists(access_token: str = Cookie(None)):
 
 @app.get("/user")
 def get_user(access_token: str = Cookie(None)):
-    #access_token = stuff["access_token"]
     if not access_token:
         raise HTTPException(status_code=401, detail="Missing access token")
         
@@ -147,7 +114,6 @@ def get_user(access_token: str = Cookie(None)):
 
 @app.get("/playlist/{playlist_id}/tracks")
 def get_tracks(playlist_id: str, access_token: str = Cookie(None)):
-    #access_token = stuff["access_token"]
     
     response = requests.get(
         f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks",
