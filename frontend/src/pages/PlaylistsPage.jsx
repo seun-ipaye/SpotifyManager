@@ -120,6 +120,26 @@ function PlaylistsPage() {
                   : "red",
               }}
             >
+              {!didUserMakeThis(playlist) && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "1.5rem",
+                    right: "1.5rem",
+                    backgroundColor: "rgba(0, 0, 0, 0.7)",
+                    borderRadius: "50%",
+                    width: "30px",
+                    height: "30px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 10,
+                  }}
+                  title="You don't own this playlist"
+                >
+                  🔒
+                </div>
+              )}
               <img
                 src={playlist.images?.[0]?.url || "/placeholder.png"}
                 alt={playlist.name}
