@@ -10,8 +10,8 @@ function ComparisonPage() {
   const user = location.state?.userdata || null; // if user is null prolly go back to front page
 
   const [playlists, setPlaylists] = useState(selectedPlaylists);
-  const [selectedSong, setSelectedSong] = useState(null);
   const [tracks, setTracks] = useState({});
+  const [selectedTrack, setSelectedTrack] = useState(null)
 
   function didUserMakeThis(playlist) {
     const playlistOwner = playlist.owner.id;
@@ -44,6 +44,58 @@ function ComparisonPage() {
 
     setTracks(trackData);
   };
+
+  const handleSongClick = (song) => {
+    setSelectedTrack(song);
+  };
+
+  const handleDragStart = (e, song) => {
+    e.dataTransfer.setData("songURI", song?.track.uri);
+    e.target.style.border = "2px solid green";
+  };
+
+  const handleDragEnd = (e) => {
+    e.target.style.border = "";
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = async (e, targetPlaylistId) => {
+  e.preventDefault();
+  const songURI = e.dataTransfer.getData("songURI");
+  
+  if (!songURI) return;
+
+  // 1. Frontend Ownership Check (Optional but good)
+  // Find the target playlist in your state
+  const targetPlaylist = playlists.find(p => p.id === targetPlaylistId);
+  if (!didUserMakeThis(targetPlaylist)) {
+    alert("You can't add songs to a playlist you don't own!");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/playlists/${targetPlaylistId}/add_track`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ track_uri: songURI }), // matches your TrackAdd Pydantic model
+      credentials: "include", // Essential for the access_token cookie!
+    });
+
+    if (response.ok) {
+      console.log("Success!");
+      // 2. Refresh the tracks so the new song appears
+      fetchTracks(); 
+    } else {
+      const error = await response.json();
+      console.error("Backend error:", error.detail);
+    }
+  } catch (err) {
+    console.error("Failed to move song:", err);
+  }
+};
 
   useEffect(() => {
     fetchTracks();
@@ -80,6 +132,8 @@ function ComparisonPage() {
               border: "1px solid",
               borderColor: didUserMakeThis(playlist) ? "#1DB954" : "#333", // Green for yours, grey for others
             }}
+            onDrop={(e) => handleDrop(e, playlist.id)}
+            onDragOver={handleDragOver}
           >
             {/* Header Section */}
             <div style={{ textAlign: "center", marginBottom: "2rem" }}>
@@ -110,8 +164,16 @@ function ComparisonPage() {
                       gap: "1rem",
                       padding: "0.5rem",
                       borderRadius: "6px",
+                      border:
+                        selectedTrack?.item.id === track.item.id
+                          ? "2px solid green"
+                          : "none",
                       backgroundColor: "rgba(255, 255, 255, 0.05)",
                     }}
+                    onClick={(e) => handleSongClick(track)}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, track)}
+                    onDragEnd={handleDragEnd}
                   >
                     <img
                       src={track.item.album.images?.[2]?.url || track.item.album.images?.[0]?.url || "/placeholder.png"}
