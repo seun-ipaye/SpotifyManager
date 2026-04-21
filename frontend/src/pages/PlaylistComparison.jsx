@@ -11,7 +11,11 @@ function ComparisonPage() {
 
   const [playlists, setPlaylists] = useState(selectedPlaylists);
   const [tracks, setTracks] = useState({});
-  const [selectedTrack, setSelectedTrack] = useState(null)
+  const [selectedTrack, setSelectedTrack] = useState(null);
+  
+  const [copyMode, setCopyMode] = useState(true);
+  const [cutMode, setCutMode] = useState(false);
+  const [deleteMode, setDeleteMode] = useState(false);
 
   function didUserMakeThis(playlist) {
     const playlistOwner = playlist.owner.id;
@@ -120,6 +124,9 @@ function ComparisonPage() {
   return (
     <div style={{ backgroundColor: "#121212", minHeight: "100vh", color: "white", padding: "2rem" }}>
       <BackButton />
+      <div onClick={setDeleteMode(!deleteMode)} style={{backgroundColor: "orange"}}>
+        Click me to delete mode
+      </div>
       <h1 style={{ textAlign: "center", marginBottom: "2rem" }}>Playlist Comparison</h1>
       
       <div
@@ -184,6 +191,26 @@ function ComparisonPage() {
                     onDragStart={(e) => handleDragStart(e, track)}
                     onDragEnd={handleDragEnd}
                   >
+                    {deleteMode(true) && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "1.5rem",
+                          right: "1.5rem",
+                          backgroundColor: "red",
+                          borderRadius: "50%",
+                          width: "30px",
+                          height: "30px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          zIndex: 10,
+                        }}
+                        title="delete song"
+                      >
+              
+                      </div>
+                    )}
                     <img
                       src={track.item.album.images?.[2]?.url || track.item.album.images?.[0]?.url || "/placeholder.png"}
                       alt={track.item.name}
