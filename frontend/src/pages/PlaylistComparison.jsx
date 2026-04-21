@@ -117,14 +117,14 @@ function ComparisonPage() {
     // console.log("tracks", tracks);
   }, []);
 
-  useEffect(() => {
-    console.log("tracks", tracks);
-  }, [tracks]);
+  
+
+
 
   return (
     <div style={{ backgroundColor: "#121212", minHeight: "100vh", color: "white", padding: "2rem" }}>
       <BackButton />
-      <div onClick={setDeleteMode(!deleteMode)} style={{backgroundColor: "orange"}}>
+      <div onClick={() => setDeleteMode(!deleteMode)} style={{backgroundColor: "orange"}}>
         Click me to delete mode
       </div>
       <h1 style={{ textAlign: "center", marginBottom: "2rem" }}>Playlist Comparison</h1>
@@ -185,30 +185,36 @@ function ComparisonPage() {
                           ? "2px solid green"
                           : "none",
                       backgroundColor: "rgba(255, 255, 255, 0.05)",
+                      position: "relative"
                     }}
                     onClick={(e) => handleSongClick(track)}
                     draggable
                     onDragStart={(e) => handleDragStart(e, track)}
                     onDragEnd={handleDragEnd}
                   >
-                    {deleteMode(true) && (
+                    {deleteMode && (
                       <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          //handleDelete(track, playlist.id);
+                        }}
                         style={{
                           position: "absolute",
-                          top: "1.5rem",
-                          right: "1.5rem",
-                          backgroundColor: "red",
+                          right: "10px",
+                          backgroundColor: "#ff4444",
+                          color: "white",
                           borderRadius: "50%",
-                          width: "30px",
-                          height: "30px",
+                          width: "24px",
+                          height: "24px",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          zIndex: 10,
+                          cursor: "pointer",
+                          zIndex: 20,
+                          fontWeight: "bold"
                         }}
-                        title="delete song"
                       >
-              
+                        ✕
                       </div>
                     )}
                     <img
