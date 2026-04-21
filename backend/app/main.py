@@ -1,5 +1,6 @@
 import string
 import random
+from pydantic import BaseModel
 from fastapi import FastAPI, HTTPException, Cookie 
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
@@ -31,6 +32,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+class TrackAdd(BaseModel):
+    track_uri: str
     
 @app.get("/")
 def root():
@@ -121,6 +125,27 @@ def get_tracks(playlist_id: str, access_token: str = Cookie(None)):
     )
     
     return response.json()
+    
+@app.post("/playlists/{playlist_id}/add_track")
+def add_track(playlist_id: str, track_data: TrackAdd, access_token: str = Cookie(None)):
+    if not access_token: raise HTTPException(status_code=401)
+    add_response = requests.post(
+            f"https://api.spotify.com/v1/playlists/{playlist_id}/items",
+            json={
+                "uris": [
+                    track_data.track_uri,
+                ],
+                "position": 0
+            },
+            headers={"Authorization": f"Bearer {access_token}"}
+        )
+    data = add_response.json()
+    if add_response.status_code == 201:
+        return data
+    else:
+         raise HTTPException(status_code=add_response.status_code, detail=data.get("error", {}).get("message", "Spotify API error"))
+    
+
 #uvicorn app.main:app --reload --port 5001
 #python3 -m venv venv source venv/bin/activate 
 #uvicorn app.main:app --reload  
