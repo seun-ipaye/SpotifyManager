@@ -93,7 +93,55 @@ function PlaylistsPage() {
 
   return (
     <div>
-      <BackButton />
+      <div style={{
+        display: "flex", 
+        alignItems: "center", 
+        justifyContent: "space-between", 
+        padding: "1rem 2rem",
+        backgroundColor: "#121212",
+        position: "sticky",
+        top: 0,
+        zIndex: 100,
+        borderBottom: "1px solid #282828"
+      }}>
+      
+        <div style={{ flex: 1 }}>
+          <BackButton />
+        </div>
+      
+       
+        <div style={{ flex: 1, textAlign: "center" }}>
+          <h1 style={{ margin: 0, fontSize: "1.5rem", fontWeight: "bold", color: "white" }}>
+            Playlists
+          </h1>
+        </div>
+      
+       
+        <div style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
+          {user ? (
+            <div 
+              onClick={''}
+              style={{ cursor: "pointer", position: "relative", group: "true" }}
+              title="Click to Logout"
+            >
+              <img 
+                src={user.images?.[0]?.url || "https://via.placeholder.com/40"} 
+                alt="Profile" 
+                style={{
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "50%",
+                  border: "2px solid #333",
+                  objectFit: "cover"
+                }}
+              />
+              
+            </div>
+          ) : (
+            <div style={{ width: "40px" }} />
+          )}
+        </div>
+      </div>
       <div
         style={{
           display: "grid",
