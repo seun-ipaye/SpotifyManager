@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import BackButton from "../components/BackButton";
+import { FaCopy, FaCut, FaTrash } from "react-icons/fa";
 
 function ComparisonPage() {
   const location = useLocation();
@@ -25,6 +26,24 @@ function ComparisonPage() {
       return false;
     }
   }
+
+  const activateCopyMode = () => {
+    setCopyMode(true);
+    setCutMode(false);
+    setDeleteMode(false);
+  };
+
+  const activateCutMode = () => {
+    setCopyMode(false);
+    setCutMode(true);
+    setDeleteMode(false);
+  };
+
+  const activateDeleteMode = () => {
+    setCopyMode(false);
+    setCutMode(false);
+    setDeleteMode(true);
+  };
 
   const fetchTracks = async () => {
     const trackData = {};
@@ -121,14 +140,41 @@ function ComparisonPage() {
 
   return (
     <div style={styles.page}>
-      <BackButton />
-      <div
-        onClick={() => setDeleteMode(!deleteMode)}
-        style={styles.deleteModeToggle}
-      >
-        Click me to delete mode
+      <div style={styles.topBar}>
+        <div style={styles.topBarLeft}>
+          <BackButton />
+        </div>
+
+        <div style={styles.topBarCenter}>
+          <h1 style={styles.title}>Playlist Comparison</h1>
+        </div>
+
+        <div style={styles.topBarRight}>
+          <button
+            onClick={activateCopyMode}
+            style={styles.modeButton(copyMode, "#1DB954")}
+            title="Copy mode"
+          >
+            <FaCopy />
+          </button>
+
+          <button
+            onClick={activateCutMode}
+            style={styles.modeButton(cutMode, "#facc15")}
+            title="Cut mode"
+          >
+            <FaCut />
+          </button>
+
+          <button
+            onClick={activateDeleteMode}
+            style={styles.modeButton(deleteMode, "#ef4444")}
+            title="Delete mode"
+          >
+            <FaTrash />
+          </button>
+        </div>
       </div>
-      <h1 style={styles.title}>Playlist Comparison</h1>
 
       <div style={styles.playlistsWrapper}>
         {playlists.map((playlist) => (
@@ -324,6 +370,50 @@ const styles = {
     textAlign: "center",
     color: "#666",
   },
+  topBar: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: "2rem",
+  },
+
+  topBarLeft: {
+    flex: 1,
+    display: "flex",
+    justifyContent: "flex-start",
+  },
+
+  topBarCenter: {
+    flex: 1,
+    display: "flex",
+    justifyContent: "center",
+  },
+
+  topBarRight: {
+    flex: 1,
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: "0.75rem",
+  },
+
+  modeButton: (isActive, color) => ({
+    width: isActive ? "52px" : "44px",
+    height: isActive ? "52px" : "44px",
+    borderRadius: "50%",
+    border: "none",
+    backgroundColor: color,
+    color: "white",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    fontSize: isActive ? "1.2rem" : "1rem",
+    transform: isActive ? "scale(1.08)" : "scale(1)",
+    transition: "all 0.2s ease",
+    boxShadow: isActive
+      ? "0 0 0 3px rgba(255,255,255,0.15)"
+      : "0 4px 10px rgba(0,0,0,0.25)",
+  }),
 };
 
 export default ComparisonPage;
