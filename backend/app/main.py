@@ -168,5 +168,5 @@ def delete_track(playlist_id: str, track_data: TrackDelete, access_token: str = 
     else:
          raise HTTPException(status_code=del_response.status_code, detail=data.get("error", {}).get("message", "Spotify API error"))
 #uvicorn app.main:app --reload --port 5001
-#python3 -m venv venv source venv/bin/activate 
+#python3 -m venv venv | source venv/bin/activate 
 #uvicorn app.main:app --reload  

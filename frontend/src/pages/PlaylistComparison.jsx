@@ -1,15 +1,16 @@
+// PlaylistComparison.js
+
 import React, { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import BackButton from "../components/BackButton";
 import { FaCopy, FaCut, FaTrash } from "react-icons/fa";
 
-function ComparisonPage() {
+function PlaylistComparison() {
   const location = useLocation();
-  const navigate = useNavigate();
   const selectedPlaylists = location.state?.selectedPlaylists || [];
-  const user = location.state?.userdata || null; // if user is null prolly go back to front page
+  const user = location.state?.userdata || null;
 
-  const [playlists, setPlaylists] = useState(selectedPlaylists);
+  const [playlists] = useState(selectedPlaylists);
   const [tracks, setTracks] = useState({});
   const [selectedTrack, setSelectedTrack] = useState(null);
 
@@ -17,14 +18,10 @@ function ComparisonPage() {
   const [cutMode, setCutMode] = useState(false);
   const [deleteMode, setDeleteMode] = useState(false);
 
+  const [deleteTarget, setDeleteTarget] = useState(null);
+
   function didUserMakeThis(playlist) {
-    const playlistOwner = playlist.owner.id;
-    const userid = user.id;
-    if (playlistOwner == userid) {
-      return true;
-    } else {
-      return false;
-    }
+    return playlist?.owner?.id === user?.id;
   }
 
   const activateCopyMode = () => {
@@ -47,6 +44,7 @@ function ComparisonPage() {
 
   const fetchTracks = async () => {
     const trackData = {};
+
     for (const playlist of selectedPlaylists) {
       try {
         const response = await fetch(
@@ -57,10 +55,10 @@ function ComparisonPage() {
         );
 
         const data = await response.json();
-        // console.log("tracks", data.items);
         trackData[playlist.id] = data.items || [];
       } catch (error) {
-        console.error("Error fetching playlists:", error);
+        console.error("Error fetching tracks:", error);
+        trackData[playlist.id] = [];
       }
     }
 
@@ -72,7 +70,7 @@ function ComparisonPage() {
   };
 
   const handleDragStart = (e, song) => {
-    e.dataTransfer.setData("songURI", song?.track.uri);
+    e.dataTransfer.setData("songURI", song?.item?.uri);
     e.target.style.border = "2px solid green";
   };
 
@@ -86,22 +84,20 @@ function ComparisonPage() {
 
   const handleDrop = async (e, targetPlaylistId) => {
     e.preventDefault();
-    const songURI = e.dataTransfer.getData("songURI");
 
+    const songURI = e.dataTransfer.getData("songURI");
     if (!songURI) return;
 
     const targetTracks = tracks[targetPlaylistId] || [];
-
-    const isDuplicate = targetTracks.some((t) => t.track.uri === songURI);
+    const isDuplicate = targetTracks.some((t) => t.item.uri === songURI);
 
     if (isDuplicate) {
       alert("This song is already in this playlist!");
       return;
     }
 
-    // 1. Frontend Ownership Check (Optional but good)
-    // Find the target playlist in your state
     const targetPlaylist = playlists.find((p) => p.id === targetPlaylistId);
+
     if (!didUserMakeThis(targetPlaylist)) {
       alert("You can't add songs to a playlist you don't own!");
       return;
@@ -113,29 +109,85 @@ function ComparisonPage() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ track_uri: songURI }), // matches your TrackAdd Pydantic model
-          credentials: "include", // Essential for the access_token cookie!
+          body: JSON.stringify({ track_uri: songURI }),
+          credentials: "include",
         },
       );
 
       if (response.ok) {
-        console.log("Success!");
-        // 2. Refresh the tracks so the new song appears
         fetchTracks();
       } else {
         const error = await response.json();
         console.error("Backend error:", error.detail);
       }
     } catch (err) {
-      console.error("Failed to move song:", err);
+      console.error("Failed to add song:", err);
+    }
+  };
+
+  const openDeleteModal = (track, playlist) => {
+    setDeleteTarget({
+      track,
+      playlistId: playlist.id,
+      playlistName: playlist.name,
+    });
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteTarget(null);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+
+    const { track, playlistId } = deleteTarget;
+    const playlist = playlists.find((p) => p.id === playlistId);
+
+    if (!didUserMakeThis(playlist)) {
+      alert("You can't delete songs from a playlist you don't own!");
+      closeDeleteModal();
+      return;
+    }
+
+    const trackUri = track.item.uri;
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/playlists/${playlistId}/delete_track`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ track_uri: trackUri }),
+          credentials: "include",
+        },
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(error.detail || "Failed to delete track.");
+        return;
+      }
+
+      setTracks((prevTracks) => ({
+        ...prevTracks,
+        [playlistId]: prevTracks[playlistId].filter(
+          (t) => t.item.uri !== trackUri,
+        ),
+      }));
+
+      if (selectedTrack?.item?.uri === trackUri) {
+        setSelectedTrack(null);
+      }
+
+      closeDeleteModal();
+    } catch (error) {
+      console.error("Failed to delete track:", error);
+      alert("Failed to delete track. Please try again.");
     }
   };
 
   useEffect(() => {
     fetchTracks();
-
-    console.log(" playlists", playlists);
-    // console.log("tracks", tracks);
   }, []);
 
   return (
@@ -184,44 +236,45 @@ function ComparisonPage() {
             onDrop={(e) => handleDrop(e, playlist.id)}
             onDragOver={handleDragOver}
           >
-            {/* Header Section */}
             <div style={styles.headerSection}>
               <img
                 src={playlist.images?.[0]?.url || "/placeholder.png"}
                 alt={playlist.name}
                 style={styles.playlistImage}
               />
+
               <h2 style={styles.playlistTitle}>{playlist.name}</h2>
+
               <p style={styles.songCount}>
                 {tracks[playlist.id]?.length || 0} songs
               </p>
             </div>
 
-            {/* Tracks List */}
             <div style={styles.tracksList}>
               {tracks[playlist.id]?.length > 0 ? (
                 tracks[playlist.id].map((track) => (
                   <div
-                    key={track.item.id}
+                    key={`${playlist.id}-${track.item.id}`}
                     style={styles.trackRow(
-                      selectedTrack?.item.id === track.item.id,
+                      selectedTrack?.item?.id === track.item.id,
                     )}
-                    onClick={(e) => handleSongClick(track)}
+                    onClick={() => handleSongClick(track)}
                     draggable
                     onDragStart={(e) => handleDragStart(e, track)}
                     onDragEnd={handleDragEnd}
                   >
-                    {deleteMode && (
+                    {deleteMode && didUserMakeThis(playlist) && (
                       <div
                         onClick={(e) => {
                           e.stopPropagation();
-                          //handleDelete(track, playlist.id);
+                          openDeleteModal(track, playlist);
                         }}
                         style={styles.deleteButton}
                       >
                         ✕
                       </div>
                     )}
+
                     <img
                       src={
                         track.item.album.images?.[2]?.url ||
@@ -231,8 +284,10 @@ function ComparisonPage() {
                       alt={track.item.name}
                       style={styles.trackImage}
                     />
+
                     <div style={styles.trackInfo}>
                       <h4 style={styles.trackName}>{track.item.name}</h4>
+
                       <p style={styles.artistNames}>
                         {track.item.artists.map((a) => a.name).join(", ")}
                       </p>
@@ -246,46 +301,103 @@ function ComparisonPage() {
           </div>
         ))}
       </div>
+
+      {deleteTarget && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modalBox}>
+            <h2 style={styles.modalTitle}>Delete Song?</h2>
+
+            <p style={styles.modalText}>
+              Are you sure you want to remove{" "}
+              <strong>{deleteTarget.track?.item?.name}</strong> from{" "}
+              <strong>{deleteTarget.playlistName}</strong>?
+            </p>
+
+            <div style={styles.modalButtons}>
+              <button onClick={closeDeleteModal} style={styles.cancelButton}>
+                Go back
+              </button>
+
+              <button onClick={handleDelete} style={styles.confirmDeleteButton}>
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 const styles = {
   page: {
-    backgroundColor: "#121212",
     minHeight: "100vh",
-    color: "white",
-    padding: "2rem",
+    backgroundColor: "#000",
+    color: "#fff",
+    padding: "24px",
   },
 
-  deleteModeToggle: {
-    backgroundColor: "orange",
+  topBar: {
+    display: "grid",
+    gridTemplateColumns: "1fr auto 1fr",
+    alignItems: "center",
+    marginBottom: "32px",
+  },
+
+  topBarLeft: {
+    display: "flex",
+    justifyContent: "flex-start",
+  },
+
+  topBarCenter: {
+    display: "flex",
+    justifyContent: "center",
+  },
+
+  topBarRight: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: "12px",
   },
 
   title: {
-    textAlign: "center",
-    marginBottom: "2rem",
+    fontSize: "32px",
+    fontWeight: "800",
+    margin: 0,
   },
+
+  modeButton: (active, color) => ({
+    width: active ? "48px" : "40px",
+    height: active ? "48px" : "40px",
+    borderRadius: "50%",
+    border: `2px solid ${color}`,
+    backgroundColor: active ? color : "transparent",
+    color: "#fff",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: active ? "20px" : "16px",
+    transition: "all 0.2s ease",
+  }),
 
   playlistsWrapper: {
-    display: "flex",
-    justifyContent: "center",
-    gap: "2rem",
-    alignItems: "flex-start",
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+    gap: "24px",
   },
 
-  playlistCard: (isOwner) => ({
-    width: "450px",
-    backgroundColor: "#181818",
-    borderRadius: "12px",
-    padding: "1.5rem",
-    border: "1px solid",
-    borderColor: isOwner ? "#1DB954" : "#333",
+  playlistCard: (ownedByUser) => ({
+    backgroundColor: "#121212",
+    border: ownedByUser ? "1px solid #1DB954" : "1px solid #333",
+    borderRadius: "16px",
+    padding: "20px",
+    minHeight: "600px",
   }),
 
   headerSection: {
     textAlign: "center",
-    marginBottom: "2rem",
+    marginBottom: "20px",
   },
 
   playlistImage: {
@@ -293,127 +405,159 @@ const styles = {
     height: "180px",
     objectFit: "cover",
     borderRadius: "8px",
-    boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
   },
 
   playlistTitle: {
-    marginTop: "1rem",
-    fontSize: "1.5rem",
+    fontSize: "22px",
+    fontWeight: "700",
+    marginTop: "12px",
+    marginBottom: "6px",
   },
 
   songCount: {
     color: "#b3b3b3",
+    margin: 0,
   },
 
   tracksList: {
     display: "flex",
     flexDirection: "column",
-    gap: "0.75rem",
+    gap: "10px",
+    maxHeight: "450px",
+    overflowY: "auto",
+    paddingRight: "4px",
   },
 
-  trackRow: (isSelected) => ({
+  trackRow: (selected) => ({
+    position: "relative",
     display: "flex",
     alignItems: "center",
-    gap: "1rem",
-    padding: "0.5rem",
-    borderRadius: "6px",
-    border: isSelected ? "2px solid green" : "none",
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    position: "relative",
+    gap: "12px",
+    backgroundColor: selected ? "#1f2937" : "#181818",
+    border: selected ? "1px solid #1DB954" : "1px solid transparent",
+    borderRadius: "10px",
+    padding: "10px",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
   }),
 
   deleteButton: {
     position: "absolute",
-    right: "10px",
-    backgroundColor: "#ff4444",
-    color: "white",
+    top: "-8px",
+    left: "-8px",
+    width: "22px",
+    height: "22px",
     borderRadius: "50%",
-    width: "24px",
-    height: "24px",
+    backgroundColor: "#ef4444",
+    color: "#fff",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+    fontSize: "14px",
+    fontWeight: "900",
     cursor: "pointer",
-    zIndex: 20,
-    fontWeight: "bold",
+    border: "2px solid #fff",
+    zIndex: 2,
   },
 
   trackImage: {
-    width: "50px",
-    height: "50px",
-    borderRadius: "4px",
-    flexShrink: 0,
+    width: "48px",
+    height: "48px",
+    objectFit: "cover",
+    borderRadius: "6px",
   },
 
   trackInfo: {
-    overflow: "hidden",
+    flex: 1,
+    minWidth: 0,
   },
 
   trackName: {
+    fontSize: "15px",
+    fontWeight: "700",
     margin: 0,
-    fontSize: "0.95rem",
-    whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
 
   artistNames: {
-    margin: 0,
-    fontSize: "0.8rem",
+    fontSize: "13px",
     color: "#b3b3b3",
-    whiteSpace: "nowrap",
+    margin: "4px 0 0",
     overflow: "hidden",
     textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
 
   emptyState: {
+    color: "#b3b3b3",
     textAlign: "center",
-    color: "#666",
+    fontStyle: "italic",
   },
-  topBar: {
+
+  modalOverlay: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    backgroundColor: "rgba(0, 0, 0, 0.75)",
     display: "flex",
+    justifyContent: "center",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: "2rem",
+    zIndex: 9999,
   },
 
-  topBarLeft: {
-    flex: 1,
-    display: "flex",
-    justifyContent: "flex-start",
+  modalBox: {
+    backgroundColor: "#121212",
+    border: "1px solid #333",
+    borderRadius: "16px",
+    padding: "28px",
+    width: "90%",
+    maxWidth: "420px",
+    textAlign: "center",
+    boxShadow: "0 20px 60px rgba(0, 0, 0, 0.5)",
   },
 
-  topBarCenter: {
-    flex: 1,
+  modalTitle: {
+    color: "#fff",
+    fontSize: "24px",
+    marginBottom: "12px",
+  },
+
+  modalText: {
+    color: "#d1d5db",
+    fontSize: "16px",
+    lineHeight: "1.5",
+    marginBottom: "24px",
+  },
+
+  modalButtons: {
     display: "flex",
+    gap: "12px",
     justifyContent: "center",
   },
 
-  topBarRight: {
-    flex: 1,
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: "0.75rem",
-  },
-
-  modeButton: (isActive, color) => ({
-    width: isActive ? "52px" : "44px",
-    height: isActive ? "52px" : "44px",
-    borderRadius: "50%",
+  cancelButton: {
+    backgroundColor: "#333",
+    color: "#fff",
     border: "none",
-    backgroundColor: color,
-    color: "white",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
+    borderRadius: "999px",
+    padding: "10px 20px",
     cursor: "pointer",
-    fontSize: isActive ? "1.2rem" : "1rem",
-    transform: isActive ? "scale(1.08)" : "scale(1)",
-    transition: "all 0.2s ease",
-    boxShadow: isActive
-      ? "0 0 0 3px rgba(255,255,255,0.15)"
-      : "0 4px 10px rgba(0,0,0,0.25)",
-  }),
+    fontWeight: "700",
+  },
+
+  confirmDeleteButton: {
+    backgroundColor: "#ef4444",
+    color: "#fff",
+    border: "none",
+    borderRadius: "999px",
+    padding: "10px 20px",
+    cursor: "pointer",
+    fontWeight: "700",
+  },
 };
 
-export default ComparisonPage;
+export default PlaylistComparison;
