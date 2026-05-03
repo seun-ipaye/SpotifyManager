@@ -14,29 +14,43 @@ function PlaylistComparison() {
   const [tracks, setTracks] = useState({});
   const [selectedTrack, setSelectedTrack] = useState(null);
 
-  const [copyMode, setCopyMode] = useState(true);
+  const [copyMode, setCopyMode] = useState(false);
   const [cutMode, setCutMode] = useState(false);
   const [deleteMode, setDeleteMode] = useState(false);
 
   const [deleteTarget, setDeleteTarget] = useState(null);
+
+  const ownedPlaylists = playlists.filter((playlist) =>
+    didUserMakeThis(playlist),
+  );
+
+  const hasAtLeastOneOwnedPlaylist = ownedPlaylists.length > 0;
+  const doesUserOwnAllPlaylists =
+    playlists.length > 0 && ownedPlaylists.length === playlists.length;
 
   function didUserMakeThis(playlist) {
     return playlist?.owner?.id === user?.id;
   }
 
   const activateCopyMode = () => {
+    if (!hasAtLeastOneOwnedPlaylist) return;
+
     setCopyMode(true);
     setCutMode(false);
     setDeleteMode(false);
   };
 
   const activateCutMode = () => {
+    if (!doesUserOwnAllPlaylists) return;
+
     setCopyMode(false);
     setCutMode(true);
     setDeleteMode(false);
   };
 
   const activateDeleteMode = () => {
+    if (!hasAtLeastOneOwnedPlaylist) return;
+
     setCopyMode(false);
     setCutMode(false);
     setDeleteMode(true);
@@ -217,7 +231,10 @@ function PlaylistComparison() {
 
   useEffect(() => {
     fetchTracks();
-  }, []);
+    if (hasAtLeastOneOwnedPlaylist) {
+      setCopyMode(true);
+    }
+  }, [hasAtLeastOneOwnedPlaylist]);
 
   return (
     <div style={styles.page}>
@@ -233,24 +250,51 @@ function PlaylistComparison() {
         <div style={styles.topBarRight}>
           <button
             onClick={activateCopyMode}
-            style={styles.modeButton(copyMode, "#1DB954")}
-            title="Copy mode"
+            style={styles.modeButton(
+              copyMode,
+              "#1DB954",
+              !hasAtLeastOneOwnedPlaylist,
+            )}
+            title={
+              hasAtLeastOneOwnedPlaylist
+                ? "Copy mode"
+                : "You don't own any of these playlists"
+            }
+            disabled={!hasAtLeastOneOwnedPlaylist}
           >
             <FaCopy />
           </button>
 
           <button
             onClick={activateCutMode}
-            style={styles.modeButton(cutMode, "#facc15")}
-            title="Cut mode"
+            style={styles.modeButton(
+              cutMode,
+              "#facc15",
+              !doesUserOwnAllPlaylists,
+            )}
+            title={
+              doesUserOwnAllPlaylists
+                ? "Cut mode"
+                : "You must own all selected playlists to use cut mode"
+            }
+            disabled={!doesUserOwnAllPlaylists}
           >
             <FaCut />
           </button>
 
           <button
             onClick={activateDeleteMode}
-            style={styles.modeButton(deleteMode, "#ef4444")}
-            title="Delete mode"
+            style={styles.modeButton(
+              deleteMode,
+              "#ef4444",
+              !hasAtLeastOneOwnedPlaylist,
+            )}
+            title={
+              hasAtLeastOneOwnedPlaylist
+                ? "Delete mode"
+                : "You don't own any of these playlists"
+            }
+            disabled={!hasAtLeastOneOwnedPlaylist}
           >
             <FaTrash />
           </button>
@@ -363,7 +407,7 @@ const styles = {
     minHeight: "100vh",
     backgroundColor: "#000",
     color: "#fff",
-    padding: "24px",
+    padding: "24px 32px 40px",
   },
 
   topBar: {
@@ -395,25 +439,30 @@ const styles = {
     margin: 0,
   },
 
-  modeButton: (active, color) => ({
+  modeButton: (active, color, disabled = false) => ({
     width: active ? "48px" : "40px",
     height: active ? "48px" : "40px",
     borderRadius: "50%",
-    border: `2px solid ${color}`,
-    backgroundColor: active ? color : "transparent",
-    color: "#fff",
-    cursor: "pointer",
+    border: `2px solid ${disabled ? "#555" : color}`,
+    backgroundColor: disabled ? "#222" : active ? color : "transparent",
+    color: disabled ? "#777" : "#fff",
+    cursor: disabled ? "not-allowed" : "pointer",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     fontSize: active ? "20px" : "16px",
     transition: "all 0.2s ease",
+    opacity: disabled ? 0.45 : 1,
   }),
 
   playlistsWrapper: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-    gap: "24px",
+    gap: "40px",
+    maxWidth: "1400px",
+    margin: "0 auto",
+    padding: "0 12px",
+    alignItems: "start",
   },
 
   playlistCard: (ownedByUser) => ({
@@ -465,7 +514,7 @@ const styles = {
     backgroundColor: selected ? "#1f2937" : "#181818",
     border: selected ? "1px solid #1DB954" : "1px solid transparent",
     borderRadius: "10px",
-    padding: "10px",
+    padding: "10px 14px",
     cursor: "pointer",
     transition: "all 0.2s ease",
   }),
@@ -499,6 +548,11 @@ const styles = {
   trackInfo: {
     flex: 1,
     minWidth: 0,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    textAlign: "center",
   },
 
   trackName: {
@@ -508,6 +562,8 @@ const styles = {
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
+    width: "100%",
+    textAlign: "center",
   },
 
   artistNames: {
@@ -517,6 +573,8 @@ const styles = {
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
+    width: "100%",
+    textAlign: "center",
   },
 
   emptyState: {

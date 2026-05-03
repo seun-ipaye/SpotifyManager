@@ -187,7 +187,7 @@ function PlaylistsPage() {
 
 const styles = {
   page: {
-    backgroundColor: "#121212",
+    backgroundColor: "#000",
     minHeight: "100vh",
   },
 
@@ -196,7 +196,7 @@ const styles = {
     alignItems: "center",
     justifyContent: "space-between",
     padding: "1rem 2rem",
-    backgroundColor: "#121212",
+    backgroundColor: "#000",
     position: "sticky",
     top: 0,
     zIndex: 100,
@@ -231,7 +231,7 @@ const styles = {
 
   playlistGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(4, 1fr)",
+    gridTemplateColumns: "repeat(6, 1fr)",
     gap: "1rem",
     padding: "1rem",
   },
