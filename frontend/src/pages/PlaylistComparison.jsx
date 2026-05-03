@@ -69,8 +69,9 @@ function PlaylistComparison() {
     setSelectedTrack(song);
   };
 
-  const handleDragStart = (e, song) => {
+  const handleDragStart = (e, song, sourcePlaylistId) => {
     e.dataTransfer.setData("songURI", song?.item?.uri);
+    e.dataTransfer.setData("sourcePlaylistId", sourcePlaylistId);
     e.target.style.border = "2px solid green";
   };
 
@@ -82,11 +83,68 @@ function PlaylistComparison() {
     e.preventDefault();
   };
 
+  const addTrackToPlaylist = async (playlistId, trackUri) => {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/playlists/${playlistId}/add_track`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ track_uri: trackUri }),
+        credentials: "include",
+      },
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || "Failed to add track.");
+    }
+
+    return response.json();
+  };
+
+  const deleteTrackFromPlaylist = async (playlistId, trackUri) => {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/playlists/${playlistId}/delete_track`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ track_uri: trackUri }),
+        credentials: "include",
+      },
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || "Failed to delete track.");
+    }
+
+    return response.json();
+  };
+
   const handleDrop = async (e, targetPlaylistId) => {
     e.preventDefault();
 
     const songURI = e.dataTransfer.getData("songURI");
-    if (!songURI) return;
+    const sourcePlaylistId = e.dataTransfer.getData("sourcePlaylistId");
+
+    if (!songURI || !sourcePlaylistId) return;
+
+    if (sourcePlaylistId === targetPlaylistId) {
+      return;
+    }
+
+    const sourcePlaylist = playlists.find((p) => p.id === sourcePlaylistId);
+    const targetPlaylist = playlists.find((p) => p.id === targetPlaylistId);
+
+    if (!didUserMakeThis(targetPlaylist)) {
+      alert("You can't add songs to a playlist you don't own!");
+      return;
+    }
+
+    if (cutMode && !didUserMakeThis(sourcePlaylist)) {
+      alert("You can't cut songs from a playlist you don't own!");
+      return;
+    }
 
     const targetTracks = tracks[targetPlaylistId] || [];
     const isDuplicate = targetTracks.some((t) => t.item.uri === songURI);
@@ -96,32 +154,17 @@ function PlaylistComparison() {
       return;
     }
 
-    const targetPlaylist = playlists.find((p) => p.id === targetPlaylistId);
-
-    if (!didUserMakeThis(targetPlaylist)) {
-      alert("You can't add songs to a playlist you don't own!");
-      return;
-    }
-
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/playlists/${targetPlaylistId}/add_track`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ track_uri: songURI }),
-          credentials: "include",
-        },
-      );
+      await addTrackToPlaylist(targetPlaylistId, songURI);
 
-      if (response.ok) {
-        fetchTracks();
-      } else {
-        const error = await response.json();
-        console.error("Backend error:", error.detail);
+      if (cutMode) {
+        await deleteTrackFromPlaylist(sourcePlaylistId, songURI);
       }
-    } catch (err) {
-      console.error("Failed to add song:", err);
+
+      fetchTracks();
+    } catch (error) {
+      console.error("Drop failed:", error);
+      alert(error.message || "Something went wrong.");
     }
   };
 
@@ -152,21 +195,7 @@ function PlaylistComparison() {
     const trackUri = track.item.uri;
 
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/playlists/${playlistId}/delete_track`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ track_uri: trackUri }),
-          credentials: "include",
-        },
-      );
-
-      if (!response.ok) {
-        const error = await response.json();
-        alert(error.detail || "Failed to delete track.");
-        return;
-      }
+      await deleteTrackFromPlaylist(playlistId, trackUri);
 
       setTracks((prevTracks) => ({
         ...prevTracks,
@@ -182,7 +211,7 @@ function PlaylistComparison() {
       closeDeleteModal();
     } catch (error) {
       console.error("Failed to delete track:", error);
-      alert("Failed to delete track. Please try again.");
+      alert(error.message || "Failed to delete track. Please try again.");
     }
   };
 
@@ -260,7 +289,7 @@ function PlaylistComparison() {
                     )}
                     onClick={() => handleSongClick(track)}
                     draggable
-                    onDragStart={(e) => handleDragStart(e, track)}
+                    onDragStart={(e) => handleDragStart(e, track, playlist.id)}
                     onDragEnd={handleDragEnd}
                   >
                     {deleteMode && didUserMakeThis(playlist) && (
@@ -443,8 +472,8 @@ const styles = {
 
   deleteButton: {
     position: "absolute",
-    top: "-8px",
-    left: "-8px",
+    top: "10px",
+    right: "10px",
     width: "22px",
     height: "22px",
     borderRadius: "50%",
